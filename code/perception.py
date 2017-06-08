@@ -4,18 +4,27 @@ import cv2
 # Identify pixels above the threshold
 # Threshold of RGB > 160 does a nice job of identifying ground pixels only
 def color_thresh(img, rgb_thresh=(160, 160, 160)):
-    # Create an array of zeros same xy size as img, but single channel
-    color_select = np.zeros_like(img[:,:,0])
+	# Create an array of zeros same xy size as img, but single channel
+    ground = np.zeros_like(img[:,:,0])
+    rock = np.zeros_like(img[:,:,0])
+    obs = np.zeros_like(img[:,:,0])
     # Require that each pixel be above all three threshold values in RGB
     # above_thresh will now contain a boolean array with "True"
     # where threshold was met
-    above_thresh = (img[:,:,0] > rgb_thresh[0]) \
+    rock_thresh = (25,100,100)
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    ground = (img[:,:,0] > rgb_thresh[0]) \
                 & (img[:,:,1] > rgb_thresh[1]) \
                 & (img[:,:,2] > rgb_thresh[2])
+    rock = (hsv[:, :, 0] > rock_thresh[0]) \
+           & (hsv[:, :, 1] > rock_thresh[1]) \
+           & (hsv[:, :, 2] > rock_thresh[2])
+    obs = np.invert(ground)
     # Index the array of zeros with the boolean array and set to 1
-    color_select[above_thresh] = 1
+    #color_select[ground] = 100
+    #color_select[rock] = 255
     # Return the binary image
-    return color_select
+    return obs,ground,rock
 
 # Define a function to convert to rover-centric coordinates
 def rover_coords(binary_img):
@@ -42,9 +51,10 @@ def to_polar_coords(x_pixel, y_pixel):
 def rotate_pix(xpix, ypix, yaw):
     # TODO:
     # Convert yaw to radians
+    yaw_rad = yaw * np.pi / 180
     # Apply a rotation
-    xpix_rotated = 0
-    ypix_rotated = 0
+    xpix_rotated = xpix * np.cos(yaw_rad) - ypix * np.sin(yaw_rad)
+    ypix_rotated = xpix * np.sin(yaw_rad) + ypix * np.cos(yaw_rad)
     # Return the result  
     return xpix_rotated, ypix_rotated
 
@@ -52,8 +62,10 @@ def rotate_pix(xpix, ypix, yaw):
 def translate_pix(xpix_rot, ypix_rot, xpos, ypos, scale): 
     # TODO:
     # Apply a scaling and a translation
-    xpix_translated = 0
-    ypix_translated = 0
+    scale = 10
+    # Perform translation and convert to integer since pixel values can't be float
+    xpix_translated = np.int_(xpos + (xpix_rot / scale))
+    ypix_translated = np.int_(ypos + (ypix_rot / scale))
     # Return the result  
     return xpix_translated, ypix_translated
 
@@ -84,25 +96,60 @@ def perception_step(Rover):
     # Perform perception steps to update Rover()
     # TODO: 
     # NOTE: camera image is coming to you in Rover.img
+
     # 1) Define source and destination points for perspective transform
+    dst_size = 5
+    # Set a bottom offset to account for the fact that the bottom of the image
+    # is not the position of the rover but a bit in front of it
+    # this is just a rough guess, feel free to change it!
+    bottom_offset = 6
+    source = np.float32([[14, 140], [301 ,140],[200, 96], [118, 96]])
+    destination = np.float32([[Rover.img.shape[1]/2 - dst_size, Rover.img.shape[0] - bottom_offset],
+                      [Rover.img.shape[1]/2 + dst_size, Rover.img.shape[0] - bottom_offset],
+                      [Rover.img.shape[1]/2 + dst_size, Rover.img.shape[0] - 2*dst_size - bottom_offset],
+                      [Rover.img.shape[1]/2 - dst_size, Rover.img.shape[0] - 2*dst_size - bottom_offset],
+                      ])
     # 2) Apply perspective transform
+    warped = perspect_transform(Rover.img, source, destination)
     # 3) Apply color threshold to identify navigable terrain/obstacles/rock samples
+    obs,ground,rock = color_thresh(warped)
+    obs_disp, ground_disp, rock_disp = color_thresh(Rover.img)
     # 4) Update Rover.vision_image (this will be displayed on left side of screen)
         # Example: Rover.vision_image[:,:,0] = obstacle color-thresholded binary image
         #          Rover.vision_image[:,:,1] = rock_sample color-thresholded binary image
         #          Rover.vision_image[:,:,2] = navigable terrain color-thresholded binary image
-
+    Rover.vision_image[:,:,0] = obs_disp*255
+    Rover.vision_image[:,:,1] = rock_disp*255
+    Rover.vision_image[:,:,2] = ground_disp*255
     # 5) Convert map image pixel values to rover-centric coords
+    x_obs, y_obs = rover_coords(obs)
+    x_rock, y_rock = rover_coords(rock)
+    x_ground, y_ground = rover_coords(ground)
     # 6) Convert rover-centric pixel values to world coordinates
+    ground_x_world,ground_y_world = pix_to_world(x_ground, y_ground, Rover.pos[0],
+                                   Rover.pos[1], Rover.yaw, Rover.worldmap.shape[0], 10)
+    obs_x_world,obs_y_world = pix_to_world(x_obs, y_obs, Rover.pos[0],
+                                   Rover.pos[1], Rover.yaw, Rover.worldmap.shape[0], 10)
+    rock_x_world,rock_y_world = pix_to_world(x_rock, y_rock, Rover.pos[0],
+                                   Rover.pos[1], Rover.yaw, Rover.worldmap.shape[0], 10)
     # 7) Update Rover worldmap (to be displayed on right side of screen)
         # Example: Rover.worldmap[obstacle_y_world, obstacle_x_world, 0] += 1
         #          Rover.worldmap[rock_y_world, rock_x_world, 1] += 1
         #          Rover.worldmap[navigable_y_world, navigable_x_world, 2] += 1
-
+    if ((Rover.pitch > 359.0 or Rover.pitch < 1.0) and (Rover.roll > 359.0 or Rover.roll < 1.0)):
+        Rover.worldmap[obs_y_world.astype(int), obs_x_world.astype(int), 0] += 1
+        Rover.worldmap[rock_y_world.astype(int), rock_x_world.astype(int), 1] += 1
+        Rover.worldmap[ground_y_world.astype(int), ground_x_world.astype(int), 2] += 1
     # 8) Convert rover-centric pixel positions to polar coordinates
     # Update Rover pixel distances and angles
-        # Rover.nav_dists = rover_centric_pixel_distances
-        # Rover.nav_angles = rover_centric_angles
+    if len(rock_x_world) > 0:
+        dist, angles = to_polar_coords(x_rock, y_rock)
+        Rover.nav_dists = dist
+        Rover.nav_angles = angles
+    else:
+        dist, angles = to_polar_coords(x_ground, y_ground)
+        Rover.nav_dists = dist
+        Rover.nav_angles = angles
     
  
     
