@@ -3,7 +3,7 @@ import cv2
 
 # Identify pixels above the threshold
 # Threshold of RGB > 160 does a nice job of identifying ground pixels only
-def color_thresh(img, rgb_thresh=(160, 160, 160)):
+def color_thresh(img, rgb_thresh=(150, 150, 150)):
 	# Create an array of zeros same xy size as img, but single channel
     ground = np.zeros_like(img[:,:,0])
     rock = np.zeros_like(img[:,:,0])
@@ -11,7 +11,7 @@ def color_thresh(img, rgb_thresh=(160, 160, 160)):
     # Require that each pixel be above all three threshold values in RGB
     # above_thresh will now contain a boolean array with "True"
     # where threshold was met
-    rock_thresh = (25,100,100)
+    rock_thresh = (20,100,100)
     hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
     ground = (img[:,:,0] > rgb_thresh[0]) \
                 & (img[:,:,1] > rgb_thresh[1]) \
@@ -19,7 +19,9 @@ def color_thresh(img, rgb_thresh=(160, 160, 160)):
     rock = (hsv[:, :, 0] > rock_thresh[0]) \
            & (hsv[:, :, 1] > rock_thresh[1]) \
            & (hsv[:, :, 2] > rock_thresh[2])
-    obs = np.invert(ground)
+    obs = (np.logical_and(img[:, :, 0] > 0,img[:, :, 0] <= rgb_thresh[0])) \
+             & (np.logical_and(img[:, :, 1] > 0,img[:, :, 1] <= rgb_thresh[1])) \
+             & (np.logical_and(img[:, :, 2] > 0,img[:, :, 2] <= rgb_thresh[2]))
     # Index the array of zeros with the boolean array and set to 1
     #color_select[ground] = 100
     #color_select[rock] = 255
@@ -58,17 +60,29 @@ def rotate_pix(xpix, ypix, yaw):
     # Return the result  
     return xpix_rotated, ypix_rotated
 
+
+def inv_rotate_pix(xrot, yrot, yaw):
+    yaw_rad = yaw * np.pi / 180
+    xpix = xrot * np.cos(yaw_rad) + yrot * np.sin(yaw_rad)
+    ypix = -xrot * np.sin(yaw_rad) + yrot * np.cos(yaw_rad)
+    return xpix,ypix
+
+
 # Define a function to perform a translation
 def translate_pix(xpix_rot, ypix_rot, xpos, ypos, scale): 
     # TODO:
     # Apply a scaling and a translation
-    scale = 10
+    #scale = 10
     # Perform translation and convert to integer since pixel values can't be float
     xpix_translated = np.int_(xpos + (xpix_rot / scale))
     ypix_translated = np.int_(ypos + (ypix_rot / scale))
     # Return the result  
     return xpix_translated, ypix_translated
 
+def inv_translate_pix(world_x,world_y,xpos,ypos,scale):
+    xpix_rot = (world_x - xpos)*scale
+    ypix_rot = (world_y - ypos)*scale
+    return xpix_rot,ypix_rot
 # Define a function to apply rotation and translation (and clipping)
 # Once you define the two functions above this function should work
 def pix_to_world(xpix, ypix, xpos, ypos, yaw, world_size, scale):
@@ -118,40 +132,49 @@ def perception_step(Rover):
         # Example: Rover.vision_image[:,:,0] = obstacle color-thresholded binary image
         #          Rover.vision_image[:,:,1] = rock_sample color-thresholded binary image
         #          Rover.vision_image[:,:,2] = navigable terrain color-thresholded binary image
-    Rover.vision_image[:,:,0] = obs_disp*255
-    Rover.vision_image[:,:,1] = rock_disp*255
-    Rover.vision_image[:,:,2] = ground_disp*255
+    Rover.vision_image[:,:,0] = obs*255
+    Rover.vision_image[:,:,1] = rock*255
+    Rover.vision_image[:,:,2] = ground*255
     # 5) Convert map image pixel values to rover-centric coords
     x_obs, y_obs = rover_coords(obs)
     x_rock, y_rock = rover_coords(rock)
     x_ground, y_ground = rover_coords(ground)
     # 6) Convert rover-centric pixel values to world coordinates
     ground_x_world,ground_y_world = pix_to_world(x_ground, y_ground, Rover.pos[0],
-                                   Rover.pos[1], Rover.yaw, Rover.worldmap.shape[0], 10)
+                                   Rover.pos[1], Rover.yaw, Rover.worldmap.shape[0], Rover.map_scale)
     obs_x_world,obs_y_world = pix_to_world(x_obs, y_obs, Rover.pos[0],
-                                   Rover.pos[1], Rover.yaw, Rover.worldmap.shape[0], 10)
+                                   Rover.pos[1], Rover.yaw, Rover.worldmap.shape[0], Rover.map_scale)
     rock_x_world,rock_y_world = pix_to_world(x_rock, y_rock, Rover.pos[0],
-                                   Rover.pos[1], Rover.yaw, Rover.worldmap.shape[0], 10)
+                                   Rover.pos[1], Rover.yaw, Rover.worldmap.shape[0], Rover.map_scale)
     # 7) Update Rover worldmap (to be displayed on right side of screen)
         # Example: Rover.worldmap[obstacle_y_world, obstacle_x_world, 0] += 1
         #          Rover.worldmap[rock_y_world, rock_x_world, 1] += 1
         #          Rover.worldmap[navigable_y_world, navigable_x_world, 2] += 1
-    if ((Rover.pitch > 359.0 or Rover.pitch < 1.0) and (Rover.roll > 359.0 or Rover.roll < 1.0)):
-        Rover.worldmap[obs_y_world.astype(int), obs_x_world.astype(int), 0] += 1
+    if ((Rover.pitch > 359.5 or Rover.pitch < 0.5) and (Rover.roll > 359.5 or Rover.roll < 0.5)):
+        #Rover.worldmap[obs_y_world.astype(int), obs_x_world.astype(int), 0] += 1
         Rover.worldmap[rock_y_world.astype(int), rock_x_world.astype(int), 1] += 1
         Rover.worldmap[ground_y_world.astype(int), ground_x_world.astype(int), 2] += 1
     # 8) Convert rover-centric pixel positions to polar coordinates
     # Update Rover pixel distances and angles
-    if len(rock_x_world) > 0:
+    if len(rock_x_world) > 1:
         dist, angles = to_polar_coords(x_rock, y_rock)
         Rover.nav_dists = dist
         Rover.nav_angles = angles
+        Rover.sample_detected = True
     else:
         dist, angles = to_polar_coords(x_ground, y_ground)
         Rover.nav_dists = dist
-        Rover.nav_angles = angles
-    
- 
-    
-    
+        Rover.nav_angles = angles[[Rover.nav_dists>45]]
+
+    # world_y,world_x = Rover.worldmap[:,:,2].nonzero()
+    # world_rotx,world_roty = inv_translate_pix(world_x,world_y,Rover.pos[0],Rover.pos[1],Rover.map_scale)
+    # xpix,ypix = inv_rotate_pix(world_rotx,world_roty,Rover.yaw)
+    # xpixclip = np.clip(np.int_(xpix), 0, Rover.vision_image.shape[0] - 1)
+    # ypixclip = np.clip(np.int_(ypix), 0, Rover.vision_image.shape[1] - 1)
+    # with open("Output.txt", "a") as text_file:
+    #     print("xpos",len(xpix),np.min(xpix),np.max(xpix),file=text_file)
+    #     print("ypos", len(ypix),np.min(ypix),np.max(ypix), file=text_file)
+    #     print("xground", len(x_ground), np.min(x_ground), np.max(x_ground), file=text_file)
+    #     print("yground", len(y_ground), np.min(y_ground), np.max(y_ground), file=text_file)
+    #Rover.vision_image[xpixclip.astype(int), ypixclip.astype(int), 2] = 255
     return Rover
