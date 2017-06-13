@@ -22,12 +22,17 @@ The major functionality and approach preferred for the perception module given t
     OpenCV functions for calculating the 3x3 perspective transform matrix and warping are used.
     
 2. Segment Navigable terrain, Rock Samples and Obstacles in the image(Function: color_thresh(img, ground_thresh,rock_thresh)):
+    
     The terrain, rock samples and obstacles possess significant differences in their color. Hence to separate and segment them color thresholding the input frame from the rover camera is chosen.
+    
     Since navigable terrain and obstacles are complementary, threshold (160,160,160) for RGB values in 3-channel image is chosen. This separates the navigable terrain and the obstacles.
+    
     Since the rock samples are small and need to be accurately detected, HSV color space is chosen to set the threshold. Few iterations of trial-error led to (20,100,100) as the suitable threshold in HSV.
 
 3. Apply geometric transformation to obtain world map(Function: pix_to_world(xpix, ypix, xpos, ypos, yaw, world_size, scale)):
+    
     The co-ordinates w.r.t Rover are rotated and translated to map the explored regions in unknown environment using the current Rover position and Yaw angle available from the sensors.
+    
     Since the perspective transformation accounts for 2D, the pitch and roll are considered zero. Hence the following condiditon check avoids inaccurate mapping to world map.
 ```     
      if ((Rover.pitch > 359.5 or Rover.pitch < 0.5) and (Rover.roll > 359.5 or Rover.roll < 0.5)):
@@ -37,7 +42,9 @@ The major functionality and approach preferred for the perception module given t
 ```
  
  4. Extract navigable angles and distances(Function: to_polar_coords(x_pixel, y_pixel)):
+    
     For navigation, the pixels and the possible navigable region is converted to polar co-ordinate system.
+    
     This approach makes things easier for the decision module to find the direction of navigation in the environment.
 
 ## Navigation and Actuation (Filename: decision.py)
@@ -45,7 +52,10 @@ The major functionality and approach preferred for the perception module given t
 The major functionality and approach preferred for the decision module given the perception output i.e map with navigable terrain. obstacles and sample rocks is the following:
 
 1. Navigate forward to explore environment and search for rock samples:
-    This branch of the decision tree plays the significant role of navigating ahead given the map visible to the rover camera. The Rover Mode is by default set to 'forward'. Based on the threshold of navigable pixels ahead and the current Rover velocity received from sensor, the control parameters Throttle, Brake and Steer Angle are decided.
+    This branch of the decision tree plays the significant role of navigating ahead given the map visible to the rover camera. 
+    
+    The Rover Mode is by default set to 'forward'. Based on the threshold of navigable pixels ahead and the current Rover velocity received from sensor, the control parameters Throttle, Brake and Steer Angle are decided.
+    
     Steer Angle is considered to be the mean of possible navigable angles later clipped and added to constant bias.
 ```  
     steer_angle = np.clip(np.mean(Rover.nav_angles * 180 / np.pi), -10, 10)+8
@@ -53,6 +63,7 @@ The major functionality and approach preferred for the decision module given the
     The mean angle directs the rover towards the most distant navigable terrain while the clipping limits from (-10,10) avoids the rover to circle around in cases where there is open ground.
     The bias is added to direct rover towards the left wall. This helps navigate and map the environment efficiently and avoid obstacles.
     The rover by default turns anti-clockwise by 15 degrees until it finds suitable terrain for progress in cases when it gets stuck by obstacles in the environment.
+
 ```
     Rover.steer = -15
 ```
@@ -75,15 +86,22 @@ The major functionality and approach preferred for the decision module given the
 
 Areas of improvement:
     The rover navigation though autonomous is not intelligent. The decision module doesnt use the previously mapped data which leads to re-visiting explored regions, facing similar obstacles.
+
 An attempt was made to use inverse transformations from world map to obtain explored regions w.r.t rover in current frame. Though the clipping from float to int was leading to inaccurate retrieval of locations.
 
-perception.py includes the functions facilitating use of inverse transformations. The efforts to remove error due to clipping was handled by storing all location values in floating point array. Though efforts were halted later on.
+'perception.py' includes the functions facilitating use of inverse transformations. The efforts to remove error due to clipping was handled by storing all location values in floating point array. Though efforts were halted later on.
     Seldom the rover gets into repetitive circular navigation depending on random movements due to obstacles and sample placements. This situation can be avoided by tracking rover positions at intervals and activating a random state for navigation in case it is stuck.
 
 
-The repository contains the code which successfully completes the Udacity Rover Challenge. To reproduce successful runs, Resolution : 1024 x 640
+The repository contains the code which successfully completes the Udacity Rover Challenge. To reproduce successful runs, 
+
+Resolution : 1024 x 640
+
 Graphic Quality: Fastest is recommended.
+
 The frame rate was recorded in the range of 45-55 fps. 
+
 Output video of successful challenge completion located at RoboND-Udacity-Rover-Challenge/output/sample_return_challenge.mp4
+
 Video from Ipython notebook located at RoboND-Udacity-Rover-Challenge/output/test-mapping.mp4
 
