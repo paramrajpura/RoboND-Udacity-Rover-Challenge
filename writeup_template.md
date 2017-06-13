@@ -29,12 +29,12 @@ The major functionality and approach preferred for the perception module given t
 3. Apply geometric transformation to obtain world map(Function: pix_to_world(xpix, ypix, xpos, ypos, yaw, world_size, scale)):
     The co-ordinates w.r.t Rover are rotated and translated to map the explored regions in unknown environment using the current Rover position and Yaw angle available from the sensors.
     Since the perspective transformation accounts for 2D, the pitch and roll are considered zero. Hence the following condiditon check avoids inaccurate mapping to world map.
-'''     
+```     
      if ((Rover.pitch > 359.5 or Rover.pitch < 0.5) and (Rover.roll > 359.5 or Rover.roll < 0.5)):
         Rover.worldmap[obs_y_world.astype(int), obs_x_world.astype(int), 0] += 1
         Rover.worldmap[rock_y_world.astype(int), rock_x_world.astype(int), 1] += 1
         Rover.worldmap[ground_y_world.astype(int), ground_x_world.astype(int), 2] += 1
-'''
+```
  
  4. Extract navigable angles and distances(Function: to_polar_coords(x_pixel, y_pixel)):
     For navigation, the pixels and the possible navigable region is converted to polar co-ordinate system.
@@ -47,15 +47,15 @@ The major functionality and approach preferred for the decision module given the
 1. Navigate forward to explore environment and search for rock samples:
     This branch of the decision tree plays the significant role of navigating ahead given the map visible to the rover camera. The Rover Mode is by default set to 'forward'. Based on the threshold of navigable pixels ahead and the current Rover velocity received from sensor, the control parameters Throttle, Brake and Steer Angle are decided.
     Steer Angle is considered to be the mean of possible navigable angles later clipped and added to constant bias.
-'''  
+```  
     steer_angle = np.clip(np.mean(Rover.nav_angles * 180 / np.pi), -10, 10)+8
-'''
+```
     The mean angle directs the rover towards the most distant navigable terrain while the clipping limits from (-10,10) avoids the rover to circle around in cases where there is open ground.
     The bias is added to direct rover towards the left wall. This helps navigate and map the environment efficiently and avoid obstacles.
     The rover by default turns anti-clockwise by 15 degrees until it finds suitable terrain for progress in cases when it gets stuck by obstacles in the environment.
-'''
+```
     Rover.steer = -15
-'''
+```
 2. Find alternate path if un-navigable terrain ahead:
     On the basis of navigable terrain visible, the decision is taken to either rotate anti-clockwise as earlier ,apply brake or move forward. 
 
@@ -63,9 +63,9 @@ The major functionality and approach preferred for the decision module given the
     In case of rock sample visible in current camera frame, following routine is followed 
     - slow down the speed to avoid missing the rock
     - Steer within restricted range to collect rocks. Clipping to -5 restricts rover to move sharply towards right wall and deviate from the path. 
-'''    
+```    
       np.clip(np.mean(Rover.nav_angles * 180 / np.pi), -5, 15)
-'''
+```
 
 4. Return to the start position after collecting all samples:
     After collecting all 6 rock samples and navigating through the environment, following routine is followed:
