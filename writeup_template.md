@@ -12,12 +12,6 @@
 
 The document addresses the modifications done to the perception and decision modules to complete the "Search and Sample Return Challenge".
 
-[//]: # (Image References)
-
-[image1]: ./misc/rover_image.jpg
-[image2]: ./calibration_images/example_grid1.jpg
-[image3]: ./calibration_images/example_rock1.jpg 
-
 
 ## Perception(Filename: perception.py)
 
@@ -35,10 +29,10 @@ The major functionality and approach preferred for the perception module given t
 3. Apply geometric transformation to obtain world map(Function: pix_to_world(xpix, ypix, xpos, ypos, yaw, world_size, scale)):
     The co-ordinates w.r.t Rover are rotated and translated to map the explored regions in unknown environment using the current Rover position and Yaw angle available from the sensors.
     Since the perspective transformation accounts for 2D, the pitch and roll are considered zero. Hence the following condiditon check avoids inaccurate mapping to world map.
-     if ((Rover.pitch > 359.5 or Rover.pitch < 0.5) and (Rover.roll > 359.5 or Rover.roll < 0.5)):
+     *if ((Rover.pitch > 359.5 or Rover.pitch < 0.5) and (Rover.roll > 359.5 or Rover.roll < 0.5)):
         Rover.worldmap[obs_y_world.astype(int), obs_x_world.astype(int), 0] += 1
         Rover.worldmap[rock_y_world.astype(int), rock_x_world.astype(int), 1] += 1
-        Rover.worldmap[ground_y_world.astype(int), ground_x_world.astype(int), 2] += 1
+        Rover.worldmap[ground_y_world.astype(int), ground_x_world.astype(int), 2] += 1*
  
  4. Extract navigable angles and distances(Function: to_polar_coords(x_pixel, y_pixel)):
     For navigation, the pixels and the possible navigable region is converted to polar co-ordinate system.
@@ -80,45 +74,9 @@ Areas of improvement:
 An attempt was made to use inverse transformations from world map to obtain explored regions w.r.t rover in current frame. Though the clipping from float to int was leading to inaccurate retrieval of locations.
 
 perception.py includes the functions facilitating use of inverse transformations. The efforts to remove error due to clipping was handled by storing all location values in floating point array. Though efforts were halted later on.
-    Seldom the rover gets into repetitve cirular navigation depending on random movements due to obstacles and sample placements. This situation can be avoided by tracking rover positions at intervals and activating a random state for navigation in case it is stuck. 
+    Seldom the rover gets into repetitive circular navigation depending on random movements due to obstacles and sample placements. This situation can be avoided by tracking rover positions at intervals and activating a random state for navigation in case it is stuck.
 
 
-The repository contains the code which succesfully completes the Udacity Rover Challenge. To reproduce successful runs, Resolution : 1024 x 720
-Quality: Fastest is recommended.
+The repository contains the code which successfully completes the Udacity Rover Challenge. To reproduce successful runs, Resolution : 1024 x 640
+Graphic Quality: Fastest is recommended.
 The frame rate was recorded in the range of 45-55 fps. 
-## [Rubric](https://review.udacity.com/#!/rubrics/916/view) Points
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
-
----
-### Writeup / README
-
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  
-
-You're reading it!
-
-### Notebook Analysis
-#### 1. Run the functions provided in the notebook on test images (first with the test data provided, next on data you have recorded). Add/modify functions to allow for color selection of obstacles and rock samples.
-Here is an example of how to include an image in your writeup.
-
-![alt text][image1]
-
-#### 1. Populate the `process_image()` function with the appropriate analysis steps to map pixels identifying navigable terrain, obstacles and rock samples into a worldmap.  Run `process_image()` on your test data using the `moviepy` functions provided to create video output of your result. 
-And another! 
-
-![alt text][image2]
-### Autonomous Navigation and Mapping
-
-#### 1. Fill in the `perception_step()` (at the bottom of the `perception.py` script) and `decision_step()` (in `decision.py`) functions in the autonomous mapping scripts and an explanation is provided in the writeup of how and why these functions were modified as they were.
-
-
-#### 2. Launching in autonomous mode your rover can navigate and map autonomously.  Explain your results and how you might improve them in your writeup.  
-
-**Note: running the simulator with different choices of resolution and graphics quality may produce different results, particularly on different machines!  Make a note of your simulator settings (resolution and graphics quality set on launch) and frames per second (FPS output to terminal by `drive_rover.py`) in your writeup when you submit the project so your reviewer can reproduce your results.**
-
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
-
-
-
-![alt text][image3]
-
-

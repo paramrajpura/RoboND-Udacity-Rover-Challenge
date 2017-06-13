@@ -143,8 +143,8 @@ def perception_step(Rover):
                  Rover.pos[1], Rover.yaw, Rover.map_scale)
 
     ground_x_world,ground_y_world = clip_for_world(x_ground_tran,y_ground_tran,Rover.worldmap.shape[0])
-    obs_x_world,obs_y_world = clip_for_world(pix_to_world(x_obs, y_obs, Rover.pos[0],
-                                  Rover.pos[1], Rover.yaw, Rover.map_scale),Rover.worldmap.shape[0])
+    x_obs_tran, y_obs_tran = pix_to_world(x_obs, y_obs, Rover.pos[0],Rover.pos[1], Rover.yaw, Rover.map_scale)
+    obs_x_world,obs_y_world = clip_for_world(x_obs_tran, y_obs_tran,Rover.worldmap.shape[0])
     x_rock_tran,y_rock_tran = pix_to_world(x_rock, y_rock, Rover.pos[0],
                  Rover.pos[1], Rover.yaw, Rover.map_scale)
     rock_x_world,rock_y_world = clip_for_world(x_rock_tran,y_rock_tran,Rover.worldmap.shape[0])
