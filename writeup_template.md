@@ -57,14 +57,15 @@ The major functionality and approach preferred for the decision module given the
     The Rover Mode is by default set to 'forward'. Based on the threshold of navigable pixels ahead and the current Rover velocity received from sensor, the control parameters Throttle, Brake and Steer Angle are decided.
     
     Steer Angle is considered to be the mean of possible navigable angles later clipped and added to constant bias.
+    
+    The mean angle directs the rover towards the most distant navigable terrain while the clipping limits from (-10,10) avoids the rover to circle around in cases where there is open ground.
+    
+    The bias is added to direct rover towards the left wall. This helps navigate and map the environment efficiently and avoid obstacles.
+    
+    In cases when it gets stuck by obstacles in the environment, the rover by default turns anti-clockwise by 15 degrees until it finds suitable terrain for progress 
 ```  
     steer_angle = np.clip(np.mean(Rover.nav_angles * 180 / np.pi), -10, 10)+8
 ```
-    
-    The mean angle directs the rover towards the most distant navigable terrain while the clipping limits from (-10,10) avoids the rover to circle around in cases where there is open ground.
-    The bias is added to direct rover towards the left wall. This helps navigate and map the environment efficiently and avoid obstacles.
-    The rover by default turns anti-clockwise by 15 degrees until it finds suitable terrain for progress in cases when it gets stuck by obstacles in the environment.
-
 
 ```
     Rover.steer = -15
