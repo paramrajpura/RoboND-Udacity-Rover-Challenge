@@ -80,3 +80,6 @@ perception.py includes the functions facilitating use of inverse transformations
 The repository contains the code which successfully completes the Udacity Rover Challenge. To reproduce successful runs, Resolution : 1024 x 640
 Graphic Quality: Fastest is recommended.
 The frame rate was recorded in the range of 45-55 fps. 
+Output video of successful challenge completion located at RoboND-Udacity-Rover-Challenge/output/sample_return_challenge.mp4
+Video from Ipython notebook located at RoboND-Udacity-Rover-Challenge/output/test-mapping.mp4
+
