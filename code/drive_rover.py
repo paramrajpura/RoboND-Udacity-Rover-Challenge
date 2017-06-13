@@ -54,13 +54,13 @@ class RoverState():
         self.ground_truth = ground_truth_3d # Ground truth worldmap
         self.mode = 'forward' # Current mode (can be forward or stop)
         self.throttle_set = 0.5 # Throttle setting when accelerating
-        self.brake_set = 20 # Brake setting when braking
+        self.brake_set = 30 # Brake setting when braking
         # The stop_forward and go_forward fields below represent total count
         # of navigable terrain pixels.  This is a very crude form of knowing
         # when you can keep going and when you should stop.  Feel free to
         # get creative in adding new fields or modifying these!
-        self.stop_forward = 100 # Threshold to initiate stopping
-        self.go_forward = 500 # Threshold to go forward again
+        self.stop_forward = 150 # Threshold to initiate stopping
+        self.go_forward = 600 # Threshold to go forward again
         self.max_vel = 2 # Maximum velocity (meters/second)
         # Image output from perception step
         # Update this image to display your intermediate analysis steps
@@ -77,9 +77,12 @@ class RoverState():
         self.picking_up = 0 # Will be set to telemetry value data["picking_up"]
         self.send_pickup = False # Set to True to trigger rock pickup
 
-        #Trail sample location
-        self.sample_detected = False
-        self.map_scale = 10
+        self.sample_detected = False # To trigger Sample trailing
+        self.map_scale = 10 #Global map scale
+        #self.explored_x = []
+        #self.explored_y = []
+        self.atStart = True # To trigger storing start position
+        self.start_pos=None # Plcaeholder for start co-ordinates
 # Initialize our rover 
 Rover = RoverState()
 
@@ -113,7 +116,10 @@ def telemetry(sid, data):
 
             # Execute the perception and decision steps to update the Rover's state
             Rover = perception_step(Rover)
-            Rover = decision_step(Rover)
+            if not Rover.repeat:
+                Rover = decision_step(Rover)
+            else:
+                Rover.repeat = False
 
             # Create output images to send to server
             out_image_string1, out_image_string2 = create_output_images(Rover)
