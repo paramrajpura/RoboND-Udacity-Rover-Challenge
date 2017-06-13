@@ -60,9 +60,11 @@ The major functionality and approach preferred for the decision module given the
 ```  
     steer_angle = np.clip(np.mean(Rover.nav_angles * 180 / np.pi), -10, 10)+8
 ```
+    
     The mean angle directs the rover towards the most distant navigable terrain while the clipping limits from (-10,10) avoids the rover to circle around in cases where there is open ground.
     The bias is added to direct rover towards the left wall. This helps navigate and map the environment efficiently and avoid obstacles.
     The rover by default turns anti-clockwise by 15 degrees until it finds suitable terrain for progress in cases when it gets stuck by obstacles in the environment.
+
 
 ```
     Rover.steer = -15
@@ -95,13 +97,13 @@ An attempt was made to use inverse transformations from world map to obtain expl
 
 The repository contains the code which successfully completes the Udacity Rover Challenge. To reproduce successful runs, 
 
-Resolution : 1024 x 640
+**Resolution : 1024 x 640**
 
-Graphic Quality: Fastest is recommended.
+**Graphic Quality: Fastest** is recommended.
 
-The frame rate was recorded in the range of 45-55 fps. 
+The frame rate was recorded in the range of **45-55 fps**. 
 
-Output video of successful challenge completion located at RoboND-Udacity-Rover-Challenge/output/sample_return_challenge.mp4
+Output video of successful challenge completion located at **RoboND-Udacity-Rover-Challenge/output/sample_return_challenge.mp4**
 
-Video from Ipython notebook located at RoboND-Udacity-Rover-Challenge/output/test-mapping.mp4
+Video from Ipython notebook located at **RoboND-Udacity-Rover-Challenge/output/test-mapping.mp4**
 
